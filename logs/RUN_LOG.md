@@ -121,3 +121,19 @@ original equal-weighted prior was 0.9792, not 0.9786, so the volume-weighted cha
 REFUELAI INC row shifts the average. Also: the zero-approval test now closes the fixture CSV
 (ResourceWarning fixed); 21 tests pass with no warnings. WORKED-RUN.md rewritten on
 worked-run-4; worked-run-1–3 kept on disk, git-ignored.
+
+### 2026-09-30 (backfilled) — omraut888 ml-h1b-timeline · first runs, clean-clone test, worked run and break attempt
+Backfilled 2026-10-01 for runs actually performed 2026-09-30; not logged at the time.
+Inputs throughout: tracked 80-days sponsorship CSV, fictional persona `search/examples/priya-nair/`.
+- Fit-design runs (`4df0ec9`, change brief "First-run finding"): run 1, résumé skills vs.
+  sponsored titles, 185 companies, Apply 76 · Consider 108 · Skip 1, fit.p 0.0 on all 185;
+  run 2, target-role words, substring match, 185, 87 · 98 · 0; run 3, whole-word match
+  (fixes `llm` matching "Fulfillment"), 183, 87 · 96 · 0, 146/183 at fit 0.25. Run 3 shipped.
+- Clean-clone test at `4df0ec9` (`TEST-REPORT.md`, `2e75e30`): doctor and verify exit 0
+  before and after; build 183 roles; score 87 · 96 · 0; 19 tests pass; failure cases 6a
+  (unparseable titles: 182 built, 1 named skip), 6b (closed OPT window: all 183 Skip),
+  6c (sockets disabled: completes, liveness unchecked) all pass; no tracked file changed.
+- Worked run at `18884eb` (`runs/worked-run-1`): 183 roles, 87 · 96 · 0; prior 0.9792.
+  Break attempt (REFUELAI INC set to 0 approvals / 2 denials in a CSV copy): p 0.699,
+  rank 109, above Microsoft; 0/0 variant p 0.979, rank 15. Open at the time: shrinkage flaw
+  (fixed 2026-10-01, entries above).
