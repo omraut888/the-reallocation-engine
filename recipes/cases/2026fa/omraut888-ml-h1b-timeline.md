@@ -51,7 +51,7 @@ Build scorer-ready role records for an international MS graduate on F-1 OPT who 
 2. Step name: Filter to the H-1B subset. Labor: AI with Human gate (gate 1).
    Script called: `build_roles.py` (`build`).
    Input: sponsorship CSV.
-   Output: rows with a non-blank `Total Approvals`, and the subset prior (mean `Approval_Rate/100`, currently 0.979).
+   Output: rows with a non-blank `Total Approvals`, and the subset prior, volume-weighted: sum(`Total Approvals`) / sum(`Total Approvals` + `Total Denials`), currently 0.9812.
    Where output goes: `build-audit.json` (`rows_in_csv`, `rows_with_h1b_data`, `assumptions.sponsorship_prior`).
 3. Step name: Parse and match sponsored titles. Labor: AI.
    Script called: `build_roles.py` (`TITLE_KEYWORDS`).
@@ -61,7 +61,7 @@ Build scorer-ready role records for an international MS graduate on F-1 OPT who 
 4. Step name: Score sponsorship and fit evidence. Labor: AI.
    Script called: `build_roles.py` (`shrunk_p`, `tier_for`, `fit_p`).
    Input: approvals, denials, matched titles, target-role tokens.
-   Output: `sponsorship.p` shrunk toward the prior with C = 5, `sponsorship.tier` (Proven ≥5 approvals, Likely 1–4, Unknown 0), `fit.p` as target-role word overlap (five possible values).
+   Output: `sponsorship.p` = (approvals + C·prior) / (approvals + denials + C), C = 5 (your-input). The prior is the subset prior for companies with at least one approval, and a fixed 0.3 (your-input, chosen not derived) for companies with 0 approvals. The fixed value exists so that zero-approval companies are not blended toward the ~98% average; only 5 such companies exist and their counts look doubled, so a data-derived prior for them would not be trustworthy. Also `sponsorship.tier` (Proven ≥5 approvals, Likely 1–4, Unknown 0), `fit.p` as target-role word overlap (five possible values).
    Where output goes: `roles.json`.
 5. Step name: Compute timeline factor. Labor: AI with Human gate (gate 2).
    Script called: `build_roles.py` (`usable_days`, `lag_for_stage`, `timeline_factor`).
@@ -94,7 +94,7 @@ Build scorer-ready role records for an international MS graduate on F-1 OPT who 
 ### Agent output
 File: `<dir>/roles.json` and `<dir>/build-audit.json`
 Fields (`roles.json`, per role): role_id, company, title, sponsorship {p, tier, source}, fit {p, source}, liveness {factor, source}, timeline {factor, source}, liveness_checked, liveness_method, evidence {total_approvals, total_denials, approval_rate_raw, median_salary_offered, median_salary_note, total_funding, latest_funding_stage, sponsored_titles, fit_tokens_matched}.
-Fields (`build-audit.json`): as_of, source_csv, rows_in_csv, rows_with_h1b_data, roles_built, skipped, tiers, roles_with_fit_above_zero, assumptions {sponsorship_prior, shrinkage_c, proven_min_approvals, usable_days, lag_days, fit_target_tokens}.
+Fields (`build-audit.json`): as_of, source_csv, rows_in_csv, rows_with_h1b_data, roles_built, skipped, tiers, roles_with_fit_above_zero, assumptions {sponsorship_prior, zero_approval_prior, shrinkage_c, proven_min_approvals, usable_days, lag_days, fit_target_tokens}.
 
 ### Human report
 File: `<dir>/role-scores.md`, written by the scorer, not by this build; plus the run-log entry from step 9.

@@ -7,6 +7,7 @@ Uses the committed fixture CSV, never the real sponsorship data, and drives
 the scorer through its CLI (it exports nothing, so importing it would run it).
 """
 
+import csv
 import datetime as dt
 import json
 import subprocess
@@ -57,6 +58,12 @@ class Sponsorship(unittest.TestCase):
     def test_shrinkage_pulls_small_samples_toward_prior(self):
         self.assertEqual(br.shrunk_p(2, 0, prior=0.5), round(4.5 / 7, 4))
         self.assertLess(br.shrunk_p(2, 0, prior=0.5), br.shrunk_p(200, 0, prior=0.5))
+
+    def test_prior_is_volume_weighted_not_equal_weighted(self):
+        # equal-weighted mean of rates would be (0.99 + 0.0) / 2 = 0.495
+        subset = [{"Total Approvals": "99.0", "Total Denials": "1.0", "Approval_Rate": "99.0"},
+                  {"Total Approvals": "0.0", "Total Denials": "1.0", "Approval_Rate": "0.0"}]
+        self.assertEqual(round(br.sponsorship_prior(subset), 4), round(99 / 101, 4))
 
     def test_tier_boundaries(self):
         self.assertEqual(br.tier_for(5), "Proven")
@@ -114,6 +121,24 @@ class Build(unittest.TestCase):
     def test_stage_drives_timeline(self):
         self.assertEqual(self.by_id["late-ml-inc"]["timeline"]["factor"], 0.6429)
         self.assertEqual(self.by_id["tiny-ai-labs"]["timeline"]["factor"], 1.0)
+
+    def test_zero_approvals_use_fixed_prior_others_use_main(self):
+        rows = list(csv.DictReader(FIXTURE_CSV.open(newline="", encoding="utf-8")))
+        late = next(r for r in rows if r["company_name"] == "LATE ML INC")
+        late.update({"Total Approvals": "0.0", "Total Denials": "2.0", "Approval_Rate": "0.0"})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "zero.csv"
+            with path.open("w", newline="", encoding="utf-8") as f:
+                w = csv.DictWriter(f, fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
+            roles, audit = br.build(path, PERSONA, br.AS_OF)
+        by_id = {r["role_id"]: r for r in roles}
+        zero, main = audit["assumptions"]["zero_approval_prior"], audit["assumptions"]["sponsorship_prior"]["value"]
+        self.assertEqual(zero["value"], 0.3)
+        self.assertTrue(zero["source"].startswith("your-input"))
+        self.assertIn("your-input zero-approval prior 0.3", by_id["late-ml-inc"]["sponsorship"]["source"])
+        self.assertEqual(by_id["late-ml-inc"]["sponsorship"]["p"], br.shrunk_p(0, 2, 0.3))  # (0 + 1.5) / 7
+        self.assertIn("toward prior", by_id["tiny-ai-labs"]["sponsorship"]["source"])
+        self.assertEqual(by_id["tiny-ai-labs"]["sponsorship"]["p"], br.shrunk_p(2, 0, main))
 
     def test_small_sample_is_likely_tier_and_below_raw_rate(self):
         tiny = self.by_id["tiny-ai-labs"]

@@ -49,6 +49,11 @@ TITLE_KEYWORDS = re.compile(
 )
 
 SHRINKAGE_C = 5            # your-input: pseudo-count pulling small samples toward the prior
+# your-input: chosen, not derived. A company with zero approved petitions on record is
+# treated as a below-average prospect instead of being blended toward the ~98% subset
+# prior. Only 5 zero-approval companies exist, with counts that look doubled, so a
+# data-derived prior for them would not be trustworthy either.
+ZERO_APPROVAL_PRIOR = 0.3
 PROVEN_MIN_APPROVALS = 5   # your-input: tier cutoff (Proven >= 5, Likely 1-4, Unknown 0)
 
 # your-input: two-bucket hiring-lag heuristic on latest_funding_stage.
@@ -101,6 +106,16 @@ def shrunk_p(approvals: float, denials: float, prior: float, c: float = SHRINKAG
     return round((approvals + c * prior) / (approvals + denials + c), 4)
 
 
+def sponsorship_prior(subset: list[dict]) -> float:
+    # pooled over all decisions: averaging per-company rates let a 1-for-1 company
+    # weigh as much as one with thousands of filings
+    approvals = sum(float(r["Total Approvals"]) for r in subset)
+    decisions = approvals + sum(float(r["Total Denials"] or 0) for r in subset)
+    if not decisions:
+        raise ValueError("no H-1B decisions to set a prior from")
+    return approvals / decisions
+
+
 def tier_for(approvals: float) -> str:
     if approvals >= PROVEN_MIN_APPROVALS:
         return "Proven"
@@ -125,7 +140,7 @@ def build(csv_path: Path, persona: dict, as_of: dt.date) -> tuple[list[dict], di
     with csv_path.open(newline="", encoding="utf-8", errors="replace") as f:
         rows = list(csv.DictReader(f))
     subset = [r for r in rows if r["Total Approvals"].strip()]
-    prior = sum(float(r["Approval_Rate"]) / 100 for r in subset) / len(subset)
+    prior = sponsorship_prior(subset)
     days = usable_days(persona["visa"], as_of)
 
     roles, skipped = [], {"unparseable-titles": [], "no-approval-rate": []}
@@ -142,6 +157,7 @@ def build(csv_path: Path, persona: dict, as_of: dt.date) -> tuple[list[dict], di
             continue
 
         approvals, denials = float(r["Total Approvals"]), float(r["Total Denials"] or 0)
+        role_prior = ZERO_APPROVAL_PRIOR if approvals == 0 else prior
         stage = r["latest_funding_stage"]
         lag = lag_for_stage(stage)
         matched = [t for t in titles if TITLE_KEYWORDS.search(t)]
@@ -151,9 +167,11 @@ def build(csv_path: Path, persona: dict, as_of: dt.date) -> tuple[list[dict], di
             "company": r["company_name"],
             "title": "; ".join(matched),
             "sponsorship": {
-                "p": shrunk_p(approvals, denials, prior),
+                "p": shrunk_p(approvals, denials, role_prior),
                 "tier": tier_for(approvals),
-                "source": f"record (approvals/denials, shrunk toward prior {prior:.4f}; C={SHRINKAGE_C} your-input)",
+                "source": (f"record (approvals/denials) shrunk toward your-input zero-approval prior {ZERO_APPROVAL_PRIOR}; C={SHRINKAGE_C} your-input"
+                           if approvals == 0 else
+                           f"record (approvals/denials, shrunk toward prior {prior:.4f}; C={SHRINKAGE_C} your-input)"),
             },
             "fit": {"p": fit, "source": "model-judgment (target-role word overlap with matched sponsored titles)"},
             "liveness": {"factor": 1.0, "source": f"not checked — {LIVENESS_METHOD}"},
@@ -187,7 +205,10 @@ def build(csv_path: Path, persona: dict, as_of: dt.date) -> tuple[list[dict], di
         "tiers": {t: sum(1 for x in roles if x["sponsorship"]["tier"] == t) for t in ("Proven", "Likely", "Unknown")},
         "roles_with_fit_above_zero": sum(1 for x in roles if x["fit"]["p"] > 0),
         "assumptions": {
-            "sponsorship_prior": {"value": round(prior, 4), "source": "record: mean Approval_Rate/100 over the H-1B subset"},
+            "sponsorship_prior": {"value": round(prior, 4), "source": "record: sum(Total Approvals) / sum(Total Approvals + Total Denials) over the H-1B subset"},
+            "zero_approval_prior": {"value": ZERO_APPROVAL_PRIOR, "applies_to": "companies with 0 approvals only",
+                                    "source": "your-input: chosen, not derived; only 5 zero-approval companies exist and their "
+                                              "counts look doubled, so a data-derived prior would not be trustworthy"},
             "shrinkage_c": {"value": SHRINKAGE_C, "source": "your-input"},
             "proven_min_approvals": {"value": PROVEN_MIN_APPROVALS, "source": "your-input"},
             "usable_days": {"value": days, "source": "record: persona profile.yml (ceiling - used - buffer), as of the fixed date"},

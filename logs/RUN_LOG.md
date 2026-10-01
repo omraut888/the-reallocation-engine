@@ -77,3 +77,39 @@ matching résumé title; repeats now read "(already counted, +0)". (2) The `skil
 `test_justification_lines_sum_to_score` fails on the old script (lines 10.0 vs score 7.5)
 and passes on the new; 23 tests pass. Verdicts and scores are unchanged, so earlier runs'
 decisions stand; only their printed justifications under-explained them.
+
+### 2026-10-01 — omraut888 ml-h1b-timeline · prior changed to volume-weighted (C unchanged)
+`build_roles.py` sponsorship prior changed from the mean of per-company Approval_Rate/100
+to sum(approvals) / sum(approvals + denials) over the 1,557-row H-1B subset; C=5 unchanged.
+New test `test_prior_is_volume_weighted_not_equal_weighted`; 20 tests pass. Real rerun
+(`runs/worked-run-2`): prior 0.9786 → 0.9812; 183 roles, Apply 87 · Consider 96 · Skip 0,
+unchanged; 0 decision changes vs worked-run-1, 41 rank shifts, max composite change 0.0005.
+Break case (REFUELAI INC set to 0 approvals / 2 denials): p 0.699 → 0.7009, still Consider,
+rank 109 of 183. Open: the prior's weighting was not the cause; the zero-approval case
+needs C or a separate prior (human decision).
+
+### 2026-10-01 — omraut888 ml-h1b-timeline · two-prior shrinkage (thin-record prior for 0 approvals)
+`build_roles.py`: companies with 0 approvals now shrink toward a thin-record prior, pooled
+over H-1B rows with 1–2 decisions (`THIN_MAX_DECISIONS = 2`, your-input); others keep the
+subset prior. Audit gains `assumptions.thin_record_prior`. 3 new tests; 23 pass.
+Real data: thin rows 317 (313 at 2/0, 4 at 0/2; none at 1 decision); thin prior 0.9874,
+above the subset prior 0.9812. Real rerun (`runs/worked-run-3`): no zero-approval company
+among the 183, so the thin prior applies to none; Apply 87 · Consider 96 · Skip 0, composites
+identical to worked-run-2. Break case (REFUELAI INC 0/2, which moves it into the thin rows):
+thin prior 0.9842, p 0.7009 → 0.703, rank 109 of 183, Consider. Recipe/card docs not yet
+updated (plan mode required; design pending human decision). Open: the zero-approval case is
+still not fixed.
+
+### 2026-10-01 — omraut888 ml-h1b-timeline · fixed zero-approval prior replaces thin-record prior
+Thin-record prior reverted. Companies with 0 approvals now shrink toward `ZERO_APPROVAL_PRIOR
+= 0.3` (your-input, chosen not derived; only 5 such companies, counts look doubled). Others
+keep the volume-weighted prior 0.9812. Audit: `assumptions.zero_approval_prior`. 21 tests pass.
+Real rerun (`runs/worked-run-4`): Apply 87 · Consider 96 · Skip 0; composites identical to
+worked-run-2 (no zero-approval company among the 183). Break case (REFUELAI INC 0/2):
+p 0.703 → 0.2143, composite 0.225, rank 109 → 179 of 183, still Consider (band 0.2–0.3).
+Unresolved, not investigated: no H-1B row has exactly 1 decision and thin counts are all even.
+
+### 2026-10-01 — omraut888 ml-h1b-timeline · recipe + card docs updated to the two-prior design
+Recipe steps 2 and 4 and the audit field list, and card sponsorship bullet and risk 2 range
+(0.839–0.9995, from worked-run-4), now describe the volume-weighted prior (0.9812) plus the
+fixed your-input 0.3 prior for zero-approval companies. Docs only; status stays DRAFT.
