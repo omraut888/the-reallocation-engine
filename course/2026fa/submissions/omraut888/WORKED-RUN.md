@@ -517,3 +517,64 @@ patched in here. The test would be that the 0-for-2 break
 case becomes Skip while worked-run-4's 87 / 96 / 0 on the real 183 stays
 unchanged. If it passes, the 0.3 prior should be re-examined: once the gate
 catches the dangerous case, the prior may no longer need to carry it.
+
+## Attestation
+- Recipe: omraut888-ml-h1b-timeline v0.1.0
+- By: Om Raut · 2026-10-01
+
+### Tested
+| Ran | Saw | Expected |
+|---|---|---|
+| Fresh clone of the branch at `4df0ec9`, `npm ci`, then `npm run doctor` and `npm run verify` before any run (TEST-REPORT steps 1–2) | both exit 0; environment runnable; no private paths tracked; 163 files conform; manifest check passed with 3 warnings; `npm ci` changed 0 files | a clean checkout that installs and passes the repository's own checks |
+| Build and score on the real data in that clone (`build_roles.py`, then `npm run score`; TEST-REPORT steps 3–4) | 183 roles from 1,557 H-1B rows; Apply 87 · Consider 96 · Skip 0 | the build runs and the scorer accepts every role record |
+| Build and score on the real data with the final design (worked-run-4; build script identical to `3745eb5`) | 183 roles; tiers Proven 134 · Likely 49 · Unknown 0; Apply 87 · Consider 96 · Skip 0; prior 0.9812 recorded in the build audit | the same 183 roles; the corrected prior recorded with its source |
+| `test_build_roles.py` at `4df0ec9`, at `3745eb5`, and at `2569346` with ResourceWarning promoted to an error (`python3 -W error::ResourceWarning -X dev`) | 19 tests OK; 21 tests OK with one ResourceWarning printed; 21 tests OK with no warnings | all tests pass, with no warnings |
+| Failure case 6a: closing bracket removed from ACV AUCTIONS INC's title list in a CSV copy | 182 roles built; `skipped.unparseable-titles` = 1, naming ACV AUCTIONS INC; no crash | the row counted and named as skipped, every other company still built |
+| Failure case 6b: persona copy with `opt_end_date` 2026-09-01, before the 2026-09-30 as-of date | usable days 0; all 183 timeline factors exactly 0.0; all 183 gated to Skip | 0 days, factor 0.0 rather than negative or an error, every role Skip |
+| Failure case 6c: build run with sockets disabled, so any network call would raise | build completed; 183 roles with `liveness_checked: false`; live-network approval still open | no network access attempted; liveness labeled unchecked |
+| **Deliberate break attempt:** CSV copy with REFUELAI INC overwritten to 0 approvals, 2 denials, built and scored under the original prior (`18884eb`) | `sponsorship.p = 0.699`; composite 0.3946; rank 109 of 183; Consider; above MICROSOFT CORP (0.2656, 12,226 approvals). The 0-approvals, 0-denials variant scored the prior itself, 0.979, rank 15 | a crash, or a low sponsorship score |
+| Each fix against the same break case and the real 183: volume-weighted prior; thin-record prior; fixed 0.3 prior | p 0.7009 (rank 109); p 0.703 (rank 109); p 0.2143 (rank 179, Consider). Real data 87 / 96 / 0 after each | a fix that lowers the break case's p well below the near-98% prior without changing real recommendations |
+| Break case under the final design at `3745eb5`, both variants | 0-for-2: p 0.2143, composite 0.225, rank 179, Consider; 0-for-0: p 0.3, composite 0.255, rank 177, Consider; both below Microsoft | a low score, below established sponsors |
+| Hand check of ACV AUCTIONS INC: raw CSV row against worked-run-4's role record and score | 22 approvals, 0 denials; p = (22 + 5 × 0.9812) / 27 = 0.9965; fit 0.25; timeline 36/56 = 0.6429; composite 0.2724, Consider. Every term matched the build to four decimals | every computed term reproducible by hand from the raw row |
+| `npm run doctor` and `npm run verify` after the run in the fresh clone (TEST-REPORT steps 7–9), and again on 2026-10-01 in the working tree at `8eb1254` | identical to before; `git diff --stat` showed no tracked file changed by the run. At `8eb1254`: doctor exit 0, no private paths tracked; verify exit 0, 163 files conform, 3 manifest warnings | checks unchanged by running the build; still passing after the fix |
+
+### Did not test
+- **The fixed 0.3 zero-approval prior on any real company.** No ML-sponsoring
+  company in the data has zero approvals. It has run only on the constructed
+  break case.
+- **Whether the sponsorship counts are doubled.** No company has exactly 1
+  decision and every thin record is even. Whether that is real upstream
+  doubling or benign was not investigated.
+- **The live-network ATS-detection step itself.** `scripts/ats/detect-ats.py`
+  was never run. Only the refusal was tested (6c): the build makes no network
+  call without approval.
+- **The proposed `role_quality` weight.** The 0.15 weight with renormalized
+  weights was never implemented, run or tested.
+- **The proposed persona patch.** The `Smart E-Commerce` RAG project was
+  never added to the persona; every run used the unmodified persona.
+- **Two failure modes in the same run.** The failure cases were tested only
+  one at a time; for example, an unparseable title together with a closed OPT
+  window on the same dataset was never run.
+- **A fresh-clone run of the final commit.** The clean-checkout test was done
+  at `4df0ec9`. The final design was run and tested in the development
+  working tree, not repeated from a fresh clone.
+- **A path from the break case to Skip.** No change that would send a
+  zero-approval company with denials to Skip was built or tested.
+
+### Broke during testing, fixed
+- **The keyword `llm` matched inside "Fulfillment".** This was found in the
+  first runs' matched titles. It admitted KEEPE UP INC ("Fulfillment
+  Operations Lead") and NOHO HEALTH INC ("Fulfillment Shift Manager"). It was
+  fixed with whole-word keyword matching in `build_roles.py` (`TITLE_KEYWORDS`),
+  with a test, `test_no_match_inside_other_words`. That took the count from
+  185 to 183 (`4df0ec9`).
+- **The equal-weighted sponsorship prior.** The deliberate break attempt
+  showed that a 0-approvals, 2-denials company scored 0.699 and outranked
+  Microsoft. The prior was replaced with a volume-weighted prior (0.9812), plus
+  a fixed `your-input` prior of 0.3 for zero-approval companies, in
+  `build_roles.py` (`sponsorship_prior`, `ZERO_APPROVAL_PRIOR`). Two tests were
+  added. The recipe, the card and `build-audit.json` document it (`3745eb5`).
+- **An unclosed fixture file in the new zero-approval test.** A
+  `ResourceWarning` appeared in the test output at `3745eb5`. It was fixed with
+  a context manager in `test_build_roles.py`, and confirmed by rerunning with
+  ResourceWarning promoted to an error: 21 tests, no warnings (`2569346`).
