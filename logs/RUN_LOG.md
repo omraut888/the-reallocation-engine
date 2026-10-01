@@ -113,3 +113,11 @@ Unresolved, not investigated: no H-1B row has exactly 1 decision and thin counts
 Recipe steps 2 and 4 and the audit field list, and card sponsorship bullet and risk 2 range
 (0.839–0.9995, from worked-run-4), now describe the volume-weighted prior (0.9812) plus the
 fixed your-input 0.3 prior for zero-approval companies. Docs only; status stays DRAFT.
+
+### 2026-10-01 — omraut888 ml-h1b-timeline · correction: original prior was 0.9792
+Correction to the entries above and to commit 3745eb5's message: on the real data the
+original equal-weighted prior was 0.9792, not 0.9786, so the volume-weighted change was
+0.9792 → 0.9812. 0.9786 appears only in the constructed break-case build, where the modified
+REFUELAI INC row shifts the average. Also: the zero-approval test now closes the fixture CSV
+(ResourceWarning fixed); 21 tests pass with no warnings. WORKED-RUN.md rewritten on
+worked-run-4; worked-run-1–3 kept on disk, git-ignored.

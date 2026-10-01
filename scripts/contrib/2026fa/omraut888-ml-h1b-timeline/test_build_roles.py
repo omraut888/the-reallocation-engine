@@ -123,7 +123,8 @@ class Build(unittest.TestCase):
         self.assertEqual(self.by_id["tiny-ai-labs"]["timeline"]["factor"], 1.0)
 
     def test_zero_approvals_use_fixed_prior_others_use_main(self):
-        rows = list(csv.DictReader(FIXTURE_CSV.open(newline="", encoding="utf-8")))
+        with FIXTURE_CSV.open(newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
         late = next(r for r in rows if r["company_name"] == "LATE ML INC")
         late.update({"Total Approvals": "0.0", "Total Denials": "2.0", "Approval_Rate": "0.0"})
         with tempfile.TemporaryDirectory() as tmp:
