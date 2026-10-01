@@ -124,8 +124,8 @@ the repository. The tests use only the standard library plus `build_roles`.
   number and executive and board names.
 - **No modification to a maintained file.** The only patch this
   contribution may make, the persona addition, is proposed and not applied.
-  The only pre-existing file this branch changes is `logs/RUN_LOG.md`. Those
-  changes are appended entries, which the constitution requires for every run.
+  This branch changes no pre-existing file. Its run log is `logs/runs/2026fa-omraut888-1.md`, inside
+  this contribution's own namespace.
 - **No network calls in the committed prototype.** `build_roles.py` and its
   tests import no network library. The test report shows the build completing
   with sockets disabled. The one networked step, ATS-presence detection

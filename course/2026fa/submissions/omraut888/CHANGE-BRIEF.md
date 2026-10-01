@@ -134,7 +134,7 @@ the sponsorship weight. The default (no flag) already gives
    this step automatically; rows are labeled
    `liveness_checked: false, method: "not run — requires live-network
    approval"` unless a human explicitly clears it (logged in
-   `logs/RUN_LOG.md`).
+   `logs/runs/2026fa-omraut888-<n>.md`).
 4. **Liveness — named limitation regardless**: even when cleared, this is
    ATS-provider *presence*, not per-posting *liveness* (`check-liveness.mjs`
    needs a posting URL this data source doesn't have). Every output row is

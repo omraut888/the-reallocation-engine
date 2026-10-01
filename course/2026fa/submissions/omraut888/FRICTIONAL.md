@@ -99,8 +99,8 @@ document it, rather than iterate further on a signal the data can't support.
 the fit distributions are in the change brief's "First-run finding", added
 in commit `4df0ec9` (2026-09-30). The run-1 lesson is also in
 `build_roles.py`'s `fit_p` docstring. These 2026-09-30 runs were not logged
-in `logs/RUN_LOG.md` at the time; a clearly marked backfill entry was added
-on 2026-10-01.
+at the time; a clearly marked backfill entry was added on 2026-10-01, now
+in `logs/runs/2026fa-omraut888-1.md`.
 
 ## Entry 3: 2026-09-30 to 2026-10-01, the sponsorship-prior break attempt
 
@@ -176,7 +176,7 @@ break case before it was kept or rejected.*
 **Traceable process.**
 - **2026-09-30, the break:** recorded at commit `18884eb`, with full output in
   `WORKED-RUN.md`.
-- **2026-10-01, the fixes:** the `logs/RUN_LOG.md` entries "prior changed to
+- **2026-10-01, the fixes:** the `logs/runs/2026fa-omraut888-1.md` entries "prior changed to
   volume-weighted", "two-prior shrinkage (thin-record prior for 0 approvals)",
   "fixed zero-approval prior replaces thin-record prior", and "recipe + card
   docs updated".
@@ -212,7 +212,7 @@ it during the build, and to record it as an open observation.
 without access to how the CSV was assembled. "Possible doubling" is an
 inference from the shape of the counts, not a verified fact.
 
-**Traceable process.** The `logs/RUN_LOG.md` entry "two-prior shrinkage"
+**Traceable process.** The `logs/runs/2026fa-omraut888-1.md` entry "two-prior shrinkage"
 records the thin-row breakdown (313 at 2/0, 4 at 0/2, none at 1 decision).
 The "fixed zero-approval prior" entry records it as unresolved and not
 investigated. `WORKED-RUN.md`'s "Unresolved observation: counts that look
