@@ -160,3 +160,84 @@ Data Entry) and false negatives (an LLM/RAG-specific title outside the
 keyword list) — the underlying data is already imperfectly assembled (the
 same ACV Auctions row lists one executive under two spellings,
 "Magnuszewski" / "Manguszewski").
+
+## First-run finding
+
+*Added after the first build runs (2026-09-30). The sections above are the
+prediction as written before anything ran and are left unchanged.*
+
+**What happened, in one paragraph.** The build runs and the scorer accepts
+its output, but the result can't tell a good role from a bad one. Across
+two designs for the fit signal, the skip rate went from 1% to 0%: the
+build tells this student to apply to, or consider, every single company it
+scores. The deciding factor is not fit or sponsorship but a funding-stage
+guess about how long a company takes to hire.
+
+### Runs
+
+| Run | fit.p design | Keyword match | Companies | Apply | Consider | Skip | Skip rate |
+|---|---|---|---|---|---|---|---|
+| 1 | resume skills vs. sponsored titles | substring (buggy) | 185 | 76 | 108 | 1 | 1% |
+| 2 | target-role words vs. matched titles | substring (buggy) | 185 | 87 | 98 | 0 | 0% |
+| 3 | target-role words vs. matched titles | whole-word (fixed) | 183 | 87 | 96 | 0 | 0% |
+
+Run 3 is the state this prototype ships with. Its fit.p design is final for
+the prototype; no third design is attempted.
+
+### fit.p distributions
+
+- **Run 1: 0.0 for all 185 companies.** Job titles never name tools, so
+  skills like Python, MLflow or LangGraph never appear in "Machine Learning
+  Engineer III".
+- **Run 2 (and run 3): only 5 possible values**, because the target-role
+  token set is `{ai, data, engineer, ml}`. Run 3: 0.0 → 10, 0.25 → 146,
+  0.5 → 24, 0.75 → 2, 1.0 → 1 (mean 0.279, median 0.25). 80% of companies
+  get the same value, which adds the same 0.075 to the composite.
+- **Skewed cases.** The signal measures whether a title contains the word
+  "data" or "engineer", not whether the work is ML:
+  - "Machine Learning Engineer" can't match the token `ml`, so 42 of the
+    48 companies sponsoring that title score 0.25, the same as a plain
+    "Data Scientist".
+  - Applied Scientist, NLP Scientist, Senior Machine Learning Scientist,
+    Senior NLP Research Scientist and Senior Security Machine Learning
+    Researcher all score 0, although they are among the closest fits for
+    this student.
+
+### Keyword-match false positives and negatives
+
+- **Fixed:** the keyword `llm` matched inside "Fu*llm*ent", admitting two
+  companies whose only matching titles were "Fulfillment Operations Lead"
+  (KEEPE UP INC) and "Fulfillment Shift Manager" (NOHO HEALTH INC). Keywords
+  now match whole words only. Both are excluded, taking the count from 185
+  to 183. No other known false positives remain.
+- **Known false negatives:** Uber and Intel, both high-volume sponsors of
+  software roles, are not scored at all because their sponsored titles
+  ("Software Engineer" and similar) contain no ML keyword. The total
+  false-negative rate can't be measured without labelled ground truth, so
+  none is claimed.
+
+### Two structural causes of the 0% skip rate
+
+1. **The liveness gate is never exercised.** Phase gate 3 blocks the
+   live-network ATS check without logged human approval, so every role is
+   given `liveness.factor = 1.0` and labelled `liveness_checked: false`. The
+   scorer's strongest Skip path, a closed gate, therefore never fires on
+   liveness.
+2. **Survivorship bias from the pre-filter.** Only companies that already
+   sponsored ML-adjacent titles enter scoring, and nearly all of them had
+   their petitions approved: shrunk `sponsorship.p` ranges from 0.838 to
+   0.999 (mean 0.986). The shrinkage works as specified but has almost
+   nothing to pull toward, since the prior itself is 0.979. Every company
+   arrives with near-maximal sponsorship evidence, so sponsorship can't
+   separate them either.
+
+### What actually drives the decisions
+
+Funding-stage-driven timeline gating, not fit or sponsorship, is the
+dominant factor in this build's decisions. Early-stage companies get the
+assumed 21-day hiring lag (`timeline.factor` 1.0); Series C and later get
+56 days (factor 0.643). Early-stage: 116 companies, mean composite 0.428,
+77 Apply / 39 Consider. Late-stage: 67 companies, mean 0.277, 10 Apply / 57
+Consider. Microsoft ranks 176th of 183 (0.266, Consider); LinkedIn ranks
+121st (0.320, Apply). That ordering comes from an asserted `your-input`
+assumption, not from any recorded evidence about how these companies hire.
