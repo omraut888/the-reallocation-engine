@@ -537,6 +537,7 @@ catches the dangerous case, the prior may no longer need to carry it.
 | Break case under the final design at `3745eb5`, both variants | 0-for-2: p 0.2143, composite 0.225, rank 179, Consider; 0-for-0: p 0.3, composite 0.255, rank 177, Consider; both below Microsoft | a low score, below established sponsors |
 | Hand check of ACV AUCTIONS INC: raw CSV row against worked-run-4's role record and score | 22 approvals, 0 denials; p = (22 + 5 × 0.9812) / 27 = 0.9965; fit 0.25; timeline 36/56 = 0.6429; composite 0.2724, Consider. Every term matched the build to four decimals | every computed term reproducible by hand from the raw row |
 | `npm run doctor` and `npm run verify` after the run in the fresh clone (TEST-REPORT steps 7–9), and again on 2026-10-01 in the working tree at `8eb1254` | identical to before; `git diff --stat` showed no tracked file changed by the run. At `8eb1254`: doctor exit 0, no private paths tracked; verify exit 0, 163 files conform, 3 manifest warnings | checks unchanged by running the build; still passing after the fix |
+| Fresh clone of the pushed branch at `744a687` (the attestation commit), `npm ci`, then `npm run doctor` and `npm run verify`, build and score on the real data, the test suite with ResourceWarning promoted to an error, then doctor and verify again | `npm ci` exit 0, 0 files changed; doctor and verify exit 0 before and after, with identical output (no private paths tracked; 163 files conform; 3 manifest warnings); 183 roles, Proven 134 · Likely 49 · Unknown 0; Apply 87 · Consider 96 · Skip 0; 21 tests OK, no warnings; `roles.json`, `build-audit.json`, `role-scores.json` and `role-scores.md` byte-identical to the committed worked-run-4 | the final commit reproduces worked-run-4 exactly from a clean checkout |
 
 ### Did not test
 - **The fixed 0.3 zero-approval prior on any real company.** No ML-sponsoring
@@ -555,9 +556,6 @@ catches the dangerous case, the prior may no longer need to carry it.
 - **Two failure modes in the same run.** The failure cases were tested only
   one at a time; for example, an unparseable title together with a closed OPT
   window on the same dataset was never run.
-- **A fresh-clone run of the final commit.** The clean-checkout test was done
-  at `4df0ec9`. The final design was run and tested in the development
-  working tree, not repeated from a fresh clone.
 - **A path from the break case to Skip.** No change that would send a
   zero-approval company with denials to Skip was built or tested.
 

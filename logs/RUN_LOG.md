@@ -137,3 +137,11 @@ Inputs throughout: tracked 80-days sponsorship CSV, fictional persona `search/ex
   Break attempt (REFUELAI INC set to 0 approvals / 2 denials in a CSV copy): p 0.699,
   rank 109, above Microsoft; 0/0 variant p 0.979, rank 15. Open at the time: shrinkage flaw
   (fixed 2026-10-01, entries above).
+
+### 2026-10-01 — omraut888 ml-h1b-timeline · fresh-clone verification of the final commit
+Fresh clone of `contrib/2026fa-omraut888-ml-h1b-timeline` at `744a687` (node v22.14.0,
+Python 3.11.15). `npm ci` exit 0, 0 files changed. doctor and verify exit 0 before and after,
+identical output (163 files conform, 3 manifest warnings, no private paths tracked). Build:
+183 roles from 1,557 H-1B rows, Proven 134 · Likely 49 · Unknown 0. Score: Apply 87 ·
+Consider 96 · Skip 0. 21 tests pass with ResourceWarning as an error. All four outputs
+byte-identical to committed `runs/worked-run-4/`. Attestation updated; nothing differed.
