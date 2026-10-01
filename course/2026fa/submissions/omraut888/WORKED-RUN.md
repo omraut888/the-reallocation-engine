@@ -416,6 +416,8 @@ OK
 [exit 0]
 ````
 
+The ResourceWarning shown above is fixed in a later commit, 2569346 — this transcript is preserved as it ran at 3745eb5 and is not edited to look cleaner in hindsight.
+
 All 21 tests pass. Two are new with this fix: one checks that the prior is
 volume-weighted, and one checks that zero-approval companies use the fixed 0.3
 while others keep the main prior. The `ResourceWarning` is from the new
